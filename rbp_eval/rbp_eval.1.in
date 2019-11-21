@@ -1,0 +1,437 @@
+.\" rbp_eval.1 is generated from rbp_eval.1.in.  Modify the latter, not
+.\" the former.
+.TH RBP_EVAL 1 "$Date: 2006-09-19 14:14:25 +1000 (Tue, 19 Sep 2006)$" "Version @VERSION@" "USER COMMANDS"
+
+.SH NAME
+rbp_eval \- calculate rank-biased precision for a retrieval run
+
+.SH SYNOPSIS
+.B rbp_eval 
+[OPTION]\|.\|.\|.\|
+.I qrels\-file run\-file
+.br
+.B rbp_eval -h
+
+.SH DESCRIPTION
+.B rbp_eval
+calculates the
+.I rank-biased precision
+of the retrieval run given in 
+.I run\-file
+against the relevance judgments provided by
+.I qrels-file\|.
+It is intended as a drop-in replacement for
+.BR trec_eval (1).  
+The
+.I rbp
+metric itself is not described in this man page, see the 
+.B REFERENCES
+section for more information.
+
+.SH OPTIONS
+.TP 
+.BI "\-d " "DEPTH_SPEC"
+Calculate 
+.I rbp 
+to the specified depth in the run. 
+.I DEPTH_SPEC
+may be a single non-negative integer, or it may be a comma-separated 
+list of integers (in increasing order, 
+without spaces).  In the latter case
+.I rbp
+will be calculated and reported at each of these depths.
+.I 0
+indicates to calculate for all documents in the run; this is the default.
+If in a list of depths, 
+.I 0 
+should be specified at the end.  If multiple depths are specified, a
+column will be added to the output specifying to which depth each
+.I rbp 
+value has been calculated.  The default depth specification is
+.I 0
+(calculate exhaustively).
+
+.TP
+.BI "\-p " "PERSIST_SPEC"
+Use the specified user persistence 
+.RI "(" "p"
+in the
+.I rbp
+formulation) to calculate
+.IR "rbp" "."
+This may be a single value in the range [0.0, 1.0], or it may be
+a comma-separated list of such values (without spaces).  If a
+list of
+.I p
+values is specified, a column will be added to the output specifying
+which
+.I p
+value each 
+.I rbp
+value has been calculated using.  The default persistence specification
+is
+.IR "0.5,0.8,0.95" "."
+
+.TP
+.BI "\-q"
+Report results for each query, in addition to results across the entire
+run.  The default is to only report overall results.
+
+.TP
+.BI "\-r"
+Rank documents in the run by the rankings given in column 4 of
+.IR "run-file" "."
+Two documents with the same ranking will be considered ties;
+see
+.B TIES
+below for a description of tie handling.  The default is to rank
+documents by order of occurence in
+.IR "run-file" ","
+in which case ties are not possible.
+
+.TP
+.BI "\-s"
+Rank documents in the run by the scores given in column 5 of
+.IR "run-file" ","
+rather than by order of occurence.
+Two documents with the same ranking will be considered ties;
+see
+.BI TIES
+below for a description of tie handling.
+.B -s
+and
+.B -r
+are mutually exclusive.
+
+.TP
+.BI "\-b " "THRESHOLD"
+Convert relevance judgments in column 6 of
+.I run-file
+to binary (0 or 1) at threshold
+.I THRESHOLD
+(with the threshold value mapping to 1).
+
+.TP
+.BI "\-B"
+Convert relevance judgments to binary at threshold
+.IR "1.0" "."
+
+.TP
+.BI "\-f " "SCALE"
+Multiply relevance judgments in column 6 of
+.I "run-file"
+by
+.IR "SCALE"
+without collapsing them to binary judgments.
+
+.TP
+.I "\-F"
+Use relevance judgments in column 6 of
+.I "run-file"
+as-is, without collapsing them to binary judgments.
+
+.TP
+.I "\-a"
+Automatically determine the way in which relevance judgments in column
+6 of
+.I "run-file"
+should be handled.  If only integral relevances are found, they will
+be treated as binary at threshold 
+.I 1
+(equivalent to the
+.I \-B
+option).  If relevances contain decimal places (even if they are all
+just ".0"), treat them as fractional relevances without scaling (as with the
+.I \-F
+option).  This is the default handling of relevance judgments.  Options
+.IR \-B ", " \-b ", " -F ", " \-f ", and " \-a
+are mutually exclusive.
+
+.TP
+.I "\-H"
+Suppress the header in the output.  See
+.B OUTPUT FORMAT
+below.
+
+.TP
+.I "\-h"
+Print a help message and exit.
+
+.SH QRELS FILE FORMAT
+
+The
+.I qrels-file
+must contain exactly four space-separated columns.  The columns
+are:
+
+.IP 
+.I qid iter docid rel
+.PP
+
+The format and meaning of each column is as follows:
+
+.TP
+.I qid
+The id of the query the relevance judgment is for.  This can be any string,
+although there is currently no mechanism for embedding spaces within
+a qid.  The qid of the judgment is matched against the qid held in the
+first column of the
+.I run-file
+(see below); the matching is not case sensitive (to be precise, qids from
+both the
+.I qrels-file
+and the
+.I run-file
+are folded to lower case).
+
+.TP
+.I iter
+This field is ignored.
+
+.TP
+.I docid
+The id of the document.  This can be any string, although there is currently
+no mechanism for embedding spaces.  The docids of the judgments are matched
+against the docids of the
+.I run-file
+in a non case-sensitive way (to be precise, docids from obth files are
+folded to lower case).
+
+.TP
+.I rel
+The judged relevance of document
+.I docid
+to query
+.IR qid "."
+This field can be any non-negative number, either integral or with
+decimal places.  See the
+.IR \-b ", " \-B ", " \-f ", " \-F ", and " \-a
+options for different ways of treating these relevance values.
+
+.PP
+
+Judgments in the qrels file can come in any order; all judgments for
+a given 
+.I qid
+do not need to be in sequence, nor do they need to be ordered by
+.IR docid "."
+
+.SH RUN FILE FORMAT
+
+The
+.I run-file
+must contain exactly six space-separated columns.  The columns
+are:
+
+.IP 
+.I qid iter docid rank score runid
+.PP
+
+The format and meaning of each column is as follows:
+
+.TP
+.I qid
+The id of the query.  See under
+.B QRELS FILE FORMAT
+above.
+
+.TP
+.I iter
+This field is ignored.
+
+.TP
+.I docid
+The id of the document.  See under
+.B QRELS FILE FORMAT
+above.
+
+.TP
+.I rank
+A non-negative integer giving
+the rank of the document in the list of answers to the
+specified query.  If the
+.I \-r
+option is in effect, this field is used to order the document
+results for each query, and if two or more documents have the
+same rank, they will be treated as ties.  No check is made to
+ensure that the rankings are strictly sequential.  If the
+.I \-r
+option is not specified, this field is ignored.
+
+.TP
+.I score
+A floating-point value giving this document's similarity score for 
+the specified query.  If the
+.I \-s
+option is in effect, this fields is used to order the document
+results for each query, and if two or more documents have the
+same score, they will be treated as ties.  If the
+.I \-s
+option is not specified, this field is ignored.
+
+.TP
+.I runid
+An arbitrary string identifying this run.  A warning will be issued
+if the same run id is not used for each entry, but otherwise the
+field is ignored.
+
+.PP
+Entries in the run file can be in any order; results for a given
+query do not have to be in sequence.  If per-query figures
+are to be reported (the
+.I \-q
+option), then queries are reported in the order of their first
+occurence.  If ordering by rank (option
+.IR \-r ")"
+or score (option
+.IR \-r ")"
+is not specified, then answers to a particular query will be
+ordered by occurence within the run file.
+
+.SH OUTPUT FORMAT
+
+The output of
+.I rbp_eval
+consists of one line for each combination of depth and persistence.
+If the 
+.I \-q
+option is specified, then scores are reported for each query,
+as well as overall averages across the run; otherwise, only
+the averages are printed.
+
+Each line of the output consists of nine space-separated fields,
+as follows:
+
+.IP
+.RB p= " persist " q= " qid " d= " depth " rbp= "rbp " + "err"
+
+.PP
+The 
+.I qid
+field is "all"  for the averages; the
+.I depth
+field is "full" for full evaluation.
+
+At the start of the output, several header lines will be printed,
+reporting information on the 
+.I rbp_eval
+run, such as the command-line arguments used, the date of the
+run, and so forth.  Each line of the header begins with
+the character '#'.  The header may be suppressed with the
+.I \-H
+option.
+
+.PP
+
+.SH TIES
+The way in which
+.I rbp_eval
+calculates the
+.I rbp
+metric is in the general case a straightforward application of
+the formulae presented in the rbp paper.  However, using the
+.I \-r
+or
+.I \-s
+arguments to specify a document ranking other than occurence order
+introduces the possibility of tied rankings when documents have
+the same score 
+.RI "(" \-s ")"
+or provided rank
+.RI "(" \-r ")."
+
+Tied results are handled by giving each document in the tie the average
+weight of the positions covered by the tie.  Assume that documents
+.IR d9 ", " d10 ", and " d11 
+are tied at position 9.  Let the weights for positions
+9 through 11 be 
+.IR w9 ", " w10 ", and " w11 
+respectively.  Then each of 
+.IR d9 ", " d10 ", and " d11 
+will be given the weight 
+.RI "(" w9 " + " w10 " + " w11  ")"
+/ 3.
+
+Handling of ties is complicated further if a cutoff depth less
+than the actual number of results is specified using the
+.I \-d
+option, and the tied results happen to span the specified cutoff depth.
+Returning to the previous example of a documents
+.IR d9 ", " d10 ", and " d11 
+being tied at position 9, assume that a cutoff depth of 10 has been
+set for 
+.I rbp
+evaluation.  Two-thirds of the span of positions 9 through 11 fit within
+the cutoff limit.  Therefore, each of the documents tied at position
+9 is considered to be two-thirds within the cutoff limit, and so
+are assigned two-thirds of the averaged weight as calculated above,
+in other words,
+.RI "(2 * (" w9 " + " w10 " + " w11  "))" 
+/ 9.  Note that the residual error bound is still set at 
+.I p
+to the power 10, since in order to maintain consistency of results,
+the one third of documents
+.IR d9 ", " d10 ", and " d11 
+that fall outside the depth cutoff are treated as unknown.
+
+The effect of handling ties across the cutoff depth in the way
+described above is to calculate the average of the figures resulting
+from each possible combination of tied documents selected to include
+within the cutoff.  The
+.I rbp
+values calculated to depth
+.I d
+can therefore differ from what would be given
+by sorting the documents and extracting the top
+.I d
+rankings.
+
+.SH WARNINGS AND ERRORS
+
+The following conditions will cause
+.I rbp_eval
+to report an error and abort processing:
+
+.IP 
+* The 
+.I qrels-file
+or
+.I run-file
+are not in the format specified above.
+
+.IP 
+* The qrels file contains multiple entries for the one 
+.RI "(" qid ", " docid ")"
+pair (even if the relevance value is the same).
+
+.PP
+The following conditions will cause
+.I rbp_eval
+to print a warning, but continue processing:
+
+.IP
+* The run file contains results for a query for which there are no
+judgments in the qrels file.
+
+.IP
+* Non-binary relevance judgments are in use, and the maximum effective
+judged relevance is greater than 1.0.
+
+.IP
+* The 
+.I runid
+field of the run file (see 
+.B "RUN FILE FORMAT"
+above) does not always contain the same value.
+
+.SH AUTHOR
+
+The
+.I rbp_eval
+program and this man page were written by William Webber.  Report bugs
+to wew at csse dot unimelb dot edu dot au.
+
+.SH REFERENCES
+Moffat, Alistair and Zobel, Justin,
+.I Ranked-biased precision for measurement of retrieval effectiveness
+(2006, to appear)
