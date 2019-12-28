@@ -1,9 +1,9 @@
 #ifndef RBPCC_HASH_H
 #define RBPCC_HASH_H
 
-#include <ext/hash_map>
-
-namespace __gnu_cxx {
+//#include <ext/hash_map>
+#include <unordered_map>
+#include <functional>
 
 /*
  *  Nasty hackery, but it is noticeably faster.
@@ -14,6 +14,14 @@ namespace __gnu_cxx {
 //    }
 //};
 //};
+
+namespace rbp 
+{
+
+template <typename T>
+struct hash 
+{
+};
 
 template <> struct hash<std::string>
   {
@@ -27,8 +35,8 @@ template <> struct hash<std::string>
 namespace rbp {
     template <class Key, class Value> 
         struct Hash {
-            typedef __gnu_cxx::hash_map<Key, Value,
-             __gnu_cxx::hash<Key>, __gnu_cxx::equal_to<Key> > Type;
+            typedef std::unordered_map<Key, Value,
+            rbp::hash<Key>, std::equal_to<Key> > Type;
         };
 };
 

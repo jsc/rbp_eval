@@ -3,6 +3,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 #include <librbp++/rbp.h>
 
 extern "C" {
@@ -15,6 +16,7 @@ const unsigned default_depth = 1000;
 const double default_discounting_base = 2;
 
 using namespace rbp;
+using namespace std;
 
 void usage_and_exit(std::ostream & out, const char * progname, int exit_code) {
     out << "USAGE: " << progname 
