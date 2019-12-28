@@ -8,11 +8,20 @@ namespace __gnu_cxx {
 /*
  *  Nasty hackery, but it is noticeably faster.
  */
-template <> struct hash<std::string> {
-    size_t operator() (const std::string & s) const {
-        return __gnu_cxx::__stl_hash_string(s.c_str());
+//template <> struct hash<std::string> {
+//    size_t operator() (const std::string & s) const {
+//        return __gnu_cxx::__stl_hash_string(s.c_str());
+//    }
+//};
+//};
+
+template <> struct hash<std::string>
+  {
+    size_t operator()(std::string const & s) const
+    {
+      return std::hash<std::string>()(s);
     }
-};
+  };
 };
 
 namespace rbp {
